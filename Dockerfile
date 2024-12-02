@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:24.04
 
 # Update current packages
 RUN apt update && apt upgrade -y
@@ -9,12 +9,24 @@ RUN apt install -y nodejs npm git curl zsh build-essential
 # Clean up after install to reduce image size
 RUN apt clean && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user with explicit UID/GID
+ARG USER_ID=1001
+ARG GROUP_ID=1001
+
 # For security reason, it's best to create a user to avoid using root by default
-RUN useradd -m -s /bin/zsh appuser
+RUN groupadd -g $GROUP_ID appuser && \
+  useradd -l -u $USER_ID -g appuser -m -s /bin/zsh appuser
+
+# Set up working directory
+WORKDIR /app
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
 
 ENV HOME=/home/appuser
-ENV PATH=$PATH:$HOME/.local/bin
+ENV PATH=$PATH:$HOME/.local/bin:$HOME/.cargo/bin
+RUN mkdir -p $HOME/.local/bin
 
 # Install oh-my-zsh
 RUN curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s
@@ -36,16 +48,14 @@ RUN snfoundryup -v 0.33.0
 
 # Download starknet-devnet binary based on host architecture
 RUN ARCH=$(uname -m) && \
-    echo "Architecture detected: $ARCH" && \
-    if [ "$ARCH" = "x86_64" ]; then \
-        echo "Installing binary for x86_64"; \
-        curl -sSfL https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.2.2/starknet-devnet-x86_64-unknown-linux-musl.tar.gz | tar -xvz -C ${HOME}/.local/bin; \
-    elif [ "$ARCH" = "aarch64" ]; then \
-        echo "Installing binary for ARM64"; \
-        curl -sSfL https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.2.2/starknet-devnet-aarch64-unknown-linux-musl.tar.gz | tar -xvz -C ${HOME}/.local/bin; \
-    else \
-        echo "Unknown architecture: $ARCH"; \
-        exit 1; \
-    fi
-
-WORKDIR /app
+  echo "Architecture detected: $ARCH" && \
+  if [ "$ARCH" = "x86_64" ]; then \
+  echo "Installing binary for x86_64"; \
+  curl -sSfL https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.2.2/starknet-devnet-x86_64-unknown-linux-musl.tar.gz | tar -xvz -C ${HOME}/.local/bin; \
+  elif [ "$ARCH" = "aarch64" ]; then \
+  echo "Installing binary for ARM64"; \
+  curl -sSfL https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/v0.2.2/starknet-devnet-aarch64-unknown-linux-musl.tar.gz | tar -xvz -C ${HOME}/.local/bin; \
+  else \
+  echo "Unknown architecture: $ARCH"; \
+  exit 1; \
+  fi
