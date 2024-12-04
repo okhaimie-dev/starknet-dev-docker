@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:24.04
 
 # Update current packages
 RUN apt update && apt upgrade -y
@@ -21,12 +21,15 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/ohmyz
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="$HOME/.cargo/bin:$PATH"
+ENV PATH=$HOME/.cargo/bin:$PATH
 
 # Install Starkli
 RUN curl --proto '=https' --tlsv1.2 -sSf https://get.starkli.sh | sh -s
 ENV PATH=$PATH:$HOME/.starkli/bin
 RUN starkliup
+ENV STARKNET_ACCOUNT=/workspaces/basecamp11-app/keystore.json
+ENV STARKNET_KEYSTORE=/workspaces/basecamp11-app/account.json
+ENV STARKNET_RPC=https://starknet-sepolia.blastapi.io/ab914dde-4484-4558-9c2b-bf20aa43c1a3/rpc/v0_7
 
 # Install Scarb
 RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh -s -- -v 2.9.1
